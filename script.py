@@ -5,7 +5,7 @@ import requests
 # 1. BEÁLLÍTÁSOK (Itt add meg a nagyker adatait)
 # ==========================================
 # Cseréld ki a nagyker igazi CSV/ZIP linkjére:
-NAGYKER_URL = "https://a-nagyker-weboldala.hu/feed.csv"
+NAGYKER_URL = "https://store.dreamlove.es/dyndata/exportaciones/csvzip/catalog_1_51_125_2_8964ad7838ce7787975ab7a21a3787ff_csv_plain.csv"
 
 # Megadandó oszlopnevek (pontosan úgy, ahogy a nagyker CSV fejlécében vannak!):
 COL_SKU = "cikkszam"
