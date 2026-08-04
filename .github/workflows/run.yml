@@ -1,8 +1,8 @@
 name: CSV Karcsusito Automatizmus
 
 on:
-  schedule:
-    - cron: '0 3 * * *'  # Minden nap 03:00 UTC
+schedule:
+    - cron: '0 * * * *'  # Minden óra 00. percében lefut
   workflow_dispatch:      # Manuális indítás gomb
 
 jobs:
