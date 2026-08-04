@@ -9,7 +9,7 @@ NAGYKER_URL = "https://store.dreamlove.es/dyndata/exportaciones/csvzip/catalog_1
 # Pontos oszlopnevek a képeid alapján:
 COL_SKU = "sku"
 COL_STOCK = "available_stock"
-COL_PRICE = "price"
+COL_PRICE = "dealer_price"
 
 # ==========================================
 # 2. FELDOLGOZÁS
