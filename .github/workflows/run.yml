@@ -33,20 +33,3 @@ jobs:
           git add karcsusitott_feed.csv
           git commit --allow-empty -m "Automatikus CSV frissites - $(date +'%Y-%m-%d %H:%M')"
           git push
-
-      - name: Értesítés küldése hiba vagy siker esetén
-        if: always()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          secure: true
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-          subject: "CSV Frissítés Státusz: ${{ job.status }}"
-          to: az_te_email_cimed@gmail.com
-          from: GitHub Actions Auto
-          body: |
-            A CSV karcsúsító automatizmus lefutott.
-            Státusz: ${{ job.status }}
-            Időpont: $(date)
