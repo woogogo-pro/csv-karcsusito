@@ -1,0 +1,38 @@
+# Megtiltjuk az összes általános keresőrobotnak (Google, Bing, DuckDuckGo stb.)
+User-agent: *
+Disallow: /
+
+# Kifejezett tiltás az összes ismert AI és scraper robotnak
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Anthropic-ai
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Diffbot
+Disallow: /
+
+User-agent: FacebookBot
+Disallow: /
+
+# Megtiltjuk a webes archívumoknak (Wayback Machine stb.)
+User-agent: ia_archiver
+Disallow: /
