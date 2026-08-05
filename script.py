@@ -3,6 +3,7 @@ import requests
 import sys
 import json
 import os
+import time
 import traceback
 from io import BytesIO
 
@@ -75,12 +76,20 @@ def main():
     df_own["id"] = df_own["id"].astype(str).str.strip()
     df_own = df_own[df_own["sku"] != ""]
     df_own = df_own.drop_duplicates(subset=["sku"], keep="last")
+    
+    # Biztosítjuk, hogy kizárólag az id és sku oszlopok maradjanak a saját fájlból
+    df_own = df_own[["id", "sku"]].copy()
+
     own_count = len(df_own)
     print(f"Sajat termekek szama (tisztitas utan): {own_count}")
 
-    # === 2. NAGYKER FEED LETOLTESE ===
+    # === 2. NAGYKER FEED LETOLTESE (CACHE-BUSTERREL) ===
     print("\n=== 2. NAGYKER FEED LETOLTESE ===")
-    df_new = pd.read_csv(NAGYKER_URL, sep=";", usecols=["sku", "dealer_price", "available_stock"], dtype=str)
+    
+    # Időbélyeg hozzáfűzése a linkhez, hogy a szerver garantáltan a friss fájlt adja át
+    fresh_nagyker_url = f"{NAGYKER_URL}?v={int(time.time())}"
+    
+    df_new = pd.read_csv(fresh_nagyker_url, sep=";", usecols=["sku", "dealer_price", "available_stock"], dtype=str)
     df_new["sku"] = df_new["sku"].astype(str).str.strip()
     df_new = df_new[df_new["sku"] != ""]
     df_new = df_new.drop_duplicates(subset=["sku"], keep="last")
