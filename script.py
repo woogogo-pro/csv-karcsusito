@@ -81,7 +81,6 @@ def main():
     # === 2. NAGYKER FEED LETOLTESE ===
     print("\n=== 2. NAGYKER FEED LETOLTESE ===")
     df_new = pd.read_csv(NAGYKER_URL, sep=";", usecols=["sku", "dealer_price", "available_stock"], dtype=str)
-    df_new = df_new.rename(columns={"available_stock": "stock", "dealer_price": "price"})
     df_new["sku"] = df_new["sku"].astype(str).str.strip()
     df_new = df_new[df_new["sku"] != ""]
     df_new = df_new.drop_duplicates(subset=["sku"], keep="last")
@@ -102,18 +101,18 @@ def main():
 
     # === 4. OSSZEFESULES ===
     print("\n=== 4. OSSZEFESULES ===")
-    merged = df_own.merge(df_new[["sku", "stock", "price"]], on="sku", how="left")
+    merged = df_own.merge(df_new[["sku", "dealer_price", "available_stock"]], on="sku", how="left")
 
-    missing_mask = merged["stock"].isna()
+    missing_mask = merged["available_stock"].isna()
     missing_count = int(missing_mask.sum())
     missing_pct = round(100 * missing_count / len(merged), 2) if len(merged) else 0.0
     print(f"Nem talalhato a nagykernel (informacios celra, NEM allitja meg a futast): "
           f"{missing_count} db ({missing_pct}%)")
 
-    merged["stock"] = merged["stock"].fillna("0")
+    merged["available_stock"] = merged["available_stock"].fillna("0")
 
-    # === 5. VEGLEGES CSV -- a bevalt fajlnevvel es pontosvesszos elvalasztoval ===
-    final_df = merged[["id", "sku", "stock", "price"]].copy()
+    # === 5. VEGLEGES CSV -- a bevalt fajlnevvel, pontosvesszos elvalasztoval ===
+    final_df = merged[["id", "sku", "dealer_price", "available_stock"]].copy()
     final_df.to_csv(OUTPUT_FILE, sep=";", index=False, encoding="utf-8-sig")
     print(f"\nVegleges frissitesi fajl elmentve: {OUTPUT_FILE} ({len(final_df)} sor)")
 
