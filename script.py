@@ -13,21 +13,20 @@ NAGYKER_URL = "https://store.dreamlove.es/dyndata/exportaciones/csvzip/catalog_1
 COL_SKU = "sku"
 COL_STOCK = "available_stock"
 
-# WP All Export "File URL" - a sajat_termekek export kész CSV-jének letöltési linkje
 OWN_PRODUCTS_FILE_URL = "https://sexstore.ie/wp-load.php?security_token=aa5206cc02fc4c62&export_id=26&action=get_data"
-OWN_SKU_COL = "sku"   # ha az export más oszlopnevet ad, itt igazítsd
-OWN_ID_COL = "id"     # ha az export más oszlopnevet ad, itt igazítsd
+OWN_SKU_COL = "sku"
+OWN_ID_COL = "id"
 
-OWN_PRODUCTS_FILE = "sajat_termekek.csv"      # cache: ha a live letöltés hibázik, ebből dolgozunk
-PREV_STATE_FILE = "previous_state.csv"        # a legutóbbi teljes állapot (id, sku, stock) - a diffhez kell
-OUTPUT_FILE = "karcsusitott_feed.csv"         # ezt olvassa be a WP All Import
+OWN_PRODUCTS_FILE = "sajat_termekek.csv"
+PREV_STATE_FILE = "previous_state.csv"
+OUTPUT_FILE = "karcsusitott_feed.csv"
 STATUS_FILE = "status.json"
 STATUS_MD_FILE = "STATUS.md"
 
-MIN_EXPECTED_NAGYKER_ROWS = 5000       # ha ennél kevesebb sort ad a nagyker, gyanús/csonka letöltés
-MIN_EXPECTED_OWN_PRODUCTS = 1000       # ha a saját export ennél kevesebbet ad, gyanús -> cache-re esünk vissza
-MISSING_SKU_WARN_PCT = 5.0             # ennyi % feletti eltűnésnél email-figyelmeztetés
-MISSING_SKU_CRITICAL_PCT = 10.0        # ennyi % feletti eltűnésnél LEÁLLÁS (nem csak figyelmeztetés!)
+MIN_EXPECTED_NAGYKER_ROWS = 5000
+MIN_EXPECTED_OWN_PRODUCTS = 1000
+MISSING_SKU_WARN_PCT = 5.0
+MISSING_SKU_CRITICAL_PCT = 10.0
 
 status = {
     "run_time_utc": datetime.now(timezone.utc).isoformat(),
@@ -40,7 +39,7 @@ status = {
     "missing_skus_sample": [],
     "changed_rows": None,
     "alerts": [],
-    "severity": "ok",   # ok | warn | critical | error
+    "severity": "ok",
     "success": False,
 }
 
@@ -75,14 +74,13 @@ def save_status_and_exit(code):
     sys.exit(code)
 
 
-# ==========================================
-# 2. SAJÁT TERMÉKEK (ID + SKU) - WP ALL EXPORT FILE URL-BŐL
-#    Ha a letöltés nem elérhető / hibázik / gyanúsan kevés terméket ad
-#    vissza -> visszaesünk a legutóbbi jó cache fájlra.
-# ==========================================
 def fetch_own_products():
     try:
-        resp = requests.get(OWN_PRODUCTS_FILE_URL, timeout=60)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                           "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        }
+        resp = requests.get(OWN_PRODUCTS_FILE_URL, headers=headers, timeout=60)
         if resp.status_code != 200:
             return None
         text = resp.text.strip()
@@ -111,8 +109,7 @@ else:
         status["own_products_source"] = "cached_fallback"
         status["alerts"].append(
             "A sajat_termekek export élő letöltése sikertelen vagy gyanúsan kevés sort adott ebben a futásban - "
-            "a legutóbbi cache-elt sajat_termekek.csv-t használtuk helyette. Ha ez több futáson át ismétlődik, "
-            "ellenőrizd a WP All Export 'File URL' linket és a napi export ütemezését."
+            "a legutóbbi cache-elt sajat_termekek.csv-t használtuk helyette."
         )
         status["severity"] = "warn"
     else:
@@ -130,9 +127,6 @@ df_own["id"] = df_own["id"].astype(str)
 df_own = df_own.drop_duplicates(subset=["sku"], keep="last")
 status["own_products_count"] = len(df_own)
 
-# ==========================================
-# 3. NAGYKER FEED LETÖLTÉSE ÉS VALIDÁLÁSA
-# ==========================================
 try:
     df_new = pd.read_csv(NAGYKER_URL, sep=';', usecols=[COL_SKU, COL_STOCK], dtype=str)
     df_new = df_new.rename(columns={COL_SKU: "sku", COL_STOCK: "stock"})
@@ -155,11 +149,6 @@ except Exception as e:
     status["severity"] = "critical"
     save_status_and_exit(1)
 
-# ==========================================
-# 4. MERGE: SAJÁT LISTA + NAGYKER KÉSZLET
-#    Left join: minden saját termék megmarad. Ha egy SKU nincs a
-#    nagyker feedben (mert törölték nála), stock = 0.
-# ==========================================
 merged = df_own.merge(df_new[["sku", "stock"]], on="sku", how="left")
 missing_mask = merged["stock"].isna()
 missing_count = int(missing_mask.sum())
@@ -172,25 +161,15 @@ if missing_count > 0:
     missing_list = merged.loc[missing_mask, "sku"].tolist()
     status["missing_skus_sample"] = missing_list[:20]
 
-# ==========================================
-# 4b. VÉSZFÉK: ha gyanúsan sok SKU hiányzik, ÁLLJUNK MEG.
-#     Nem írjuk ki a feedet, nem írjuk felül a previous_state-et.
-#     Ez a leállás MEGELŐZI az 5. szekciót (kiírás) - itt még
-#     semmilyen fájl nem módosul.
-# ==========================================
 if missing_pct >= MISSING_SKU_CRITICAL_PCT:
     status["alerts"].append(
         f"KRITIKUS RIASZTÁS: {missing_count} SKU ({missing_pct}%) hiányzik a nagyker feedből. "
-        f"Ez gyanúsan magas arány - valószínűleg nagyker-oldali hiba, NEM valódi tömeges törlés. "
-        f"A FUTÁS LEÁLLT, a karcsusitott_feed.csv és previous_state.csv VÁLTOZATLAN maradt, "
-        f"hogy ne írjunk felül jó készletadatokat téves 0-kal. MANUÁLIS ELLENŐRZÉS SZÜKSÉGES, "
-        f"mielőtt a script újra futna és feldolgozná ezt az adatot."
+        f"A FUTÁS LEÁLLT, a fájlok változatlanok maradtak. MANUÁLIS ELLENŐRZÉS SZÜKSÉGES."
     )
     status["severity"] = "critical"
     status["changed_rows"] = 0
     save_status_and_exit(1)
 
-# Csak akkor jutunk el ide, ha a hiányzó SKU-k aránya biztonságos (< 10%).
 merged.loc[missing_mask, "stock"] = 0
 merged["stock"] = merged["stock"].astype(int)
 
@@ -203,14 +182,9 @@ if missing_count > 0:
             status["severity"] = "warn"
     else:
         status["alerts"].append(
-            f"{missing_count} SKU ({missing_pct}%) hiányzik a nagyker feedből (valószínűleg törölt cikkek), 0-ra állítva."
+            f"{missing_count} SKU ({missing_pct}%) hiányzik a nagyker feedből, 0-ra állítva."
         )
 
-# ==========================================
-# 5. DIFF - CSAK A TÉNYLEGESEN VÁLTOZOTT SOROK KIÍRÁSA
-#    (Ide már csak biztonságos, < 10% hiányzó SKU-t tartalmazó
-#    adattal jutunk el.)
-# ==========================================
 if os.path.exists(PREV_STATE_FILE):
     df_prev = pd.read_csv(PREV_STATE_FILE, dtype=str)
     df_prev["stock"] = pd.to_numeric(df_prev["stock"], errors="coerce").fillna(0).astype(int)
