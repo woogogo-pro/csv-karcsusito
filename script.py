@@ -12,7 +12,7 @@ OWN_PRODUCTS_FILE_URL = "https://sexstore.ie/wp-load.php?security_token=aa5206cc
 
 STATE_FILE = "state.json"
 OUTPUT_FILE = "karcsusitott_feed.csv"                  # Az eredeti, fő frissítési fájl
-SURGOS_OUTPUT_FILE = "surgos_frissites_valtoztak.csv"  # ÚJ: csak a megváltozott termékek
+SURGOS_OUTPUT_FILE = "surgos_frissites_valtoztak.csv"  # ÚJ: csak a megváltozott termékek (id;sku;available_stock)
 MISSING_FILE = "hianyoznak.csv"
 
 MAX_DROP_PCT = 35.0  # ha ennél többet esik a sorszám -> leállás
@@ -114,10 +114,10 @@ def main():
     final_df["available_stock"] = final_df["available_stock"].astype(str).str.strip()
 
     # =========================================================================
-    # === 5. SÜRGŐS FRISSÍTÉS GENERÁLÁSA (TELJESEN IZOLÁLT BIZTONSÁGI BLOKK) ===
+    # === 5. SÜRGŐS FRISSÍTÉS GENERÁLÁSA (CSAK AKKOR ÍRJA FELÜL, HA VAN ÚJ) ===
     # =========================================================================
     try:
-        print("\n=== 5. SURGOS FRISSITES DETEKTALASA (MELLEKKULDETES) ===")
+        print("\n=== 5. SURGOS FRISSITES DETEKTALASA ===")
         if os.path.exists(OUTPUT_FILE):
             df_old = pd.read_csv(OUTPUT_FILE, sep=";", dtype=str)
             df_old.columns = [c.strip().lower() for c in df_old.columns]
@@ -141,15 +141,18 @@ def main():
         else:
             surgos_df = final_df[["id", "sku", "available_stock"]].copy()
 
-        surgos_df.to_csv(SURGOS_OUTPUT_FILE, sep=";", index=False, encoding="utf-8-sig")
-        print(f"-> Surgos frissitesi fajl sikeresen elmentve: {SURGOS_OUTPUT_FILE} ({len(surgos_df)} valtozott sor)")
+        # ÚJ LOGIKA: Csak akkor menti el, ha több mint 0 sor változott
+        if len(surgos_df) > 0:
+            surgos_df.to_csv(SURGOS_OUTPUT_FILE, sep=";", index=False, encoding="utf-8-sig")
+            print(f"-> UJ VALTOZASOK DETEKTALVA! Surgos fajl felulirva: {SURGOS_OUTPUT_FILE} ({len(surgos_df)} sor)")
+        else:
+            print(f"-> Nincs uj valtozas (0 sor). A {SURGOS_OUTPUT_FILE} nem lett felulirva, marad a korabbi tartalma.")
 
     except Exception as e:
-        # Ha BÁRMI hiba történik a sürgős frissítés közben, kiírja a hibát, DE A SCRIPT MEGY TOVÁBB!
         print(f"\n[FIGYELMEZTETES] A surgos frissites generalasa nem sikerult ({e}), de a fo feed mentese folytatodik!")
 
     # =========================================================================
-    # === 6. FŐ FAJL ÉS HIÁNYZÓK MENTÉSE (EZ MINDENKÉPP LEFUT) ===
+    # === 6. FŐ FÁJL ÉS HIÁNYZÓK MENTÉSE ===
     # =========================================================================
     final_df.to_csv(OUTPUT_FILE, sep=";", index=False, encoding="utf-8-sig")
     print(f"\nVegleges karcsusitott_feed.csv elmentve ({len(final_df)} sor)")
