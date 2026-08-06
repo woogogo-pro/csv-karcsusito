@@ -26,15 +26,17 @@ jobs:
       - name: Script futtatása
         run: python script.py
 
-      - name: Módosítások mentése és feltöltése
+      - name: Módosítások ellenőrzése, mentése és WP Triggerelés
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add karcsusitott_feed.csv surgos_frissites_valtoztak.csv hianyoznak.csv state.json
-          git commit --allow-empty -m "Automatikus CSV frissites - $(date +'%Y-%m-%d %H:%M')"
-          git push
-
-      - name: WP All Import Sürgős Frissítés Indítása
-        run: |
-          sleep 60
-          curl -s "https://sexstore.ie/wp-load.php?import_key=3SzT.RJZ&import_id=100&action=trigger"
+          if ! git diff --staged --quiet; then
+            echo "Változás történt, mentés a GitHubra és WP All Import triggerelése..."
+            git commit -m "Automatikus CSV frissites - $(date +'%Y-%m-%d %H:%M')"
+            git push
+            sleep 60
+            curl -s "https://sexstore.ie/wp-load.php?import_key=3SzT.RJZ&import_id=100&action=trigger"
+          else
+            echo "Nincs változás a CSV fájlokban, a commit és a trigger kihagyva."
+          fi
