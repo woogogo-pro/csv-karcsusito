@@ -29,7 +29,12 @@ jobs:
       - name: Módosítások mentése és feltöltése
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.email "github-actions[bot]"
           git add karcsusitott_feed.csv surgos_frissites_valtoztak.csv hianyoznak.csv state.json
           git commit --allow-empty -m "Automatikus CSV frissites - $(date +'%Y-%m-%d %H:%M')"
           git push
+
+      - name: WP All Import Sürgős Frissítés Indítása
+        run: |
+          sleep 60
+          curl -s "IDE_JON_A_WP_ALL_IMPORT_TRIGGER_LINKED"
