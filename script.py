@@ -82,9 +82,15 @@ def main():
 
     # === 2. NAGYKER FEED LETÖLTÉSE ===
     print("\n=== 2. NAGYKER FEED LETOLTESE ===")
-    fresh_nagyker_url = f"{NAGYKER_URL}?v={int(time.time())}"
+    # Kérdőjel ellenőrzés: ha az URL már tartalmaz '?'-t (a token miatt), akkor '&v='-t fűzünk hozzá
+    sep_char = "&" if "?" in NAGYKER_URL else "?"
+    fresh_nagyker_url = f"{NAGYKER_URL}{sep_char}v={int(time.time())}"
     
-    df_new = pd.read_csv(fresh_nagyker_url, sep=";", usecols=["sku", "dealer_price", "available_stock"], dtype=str)
+    # A saját User-Agent elküldésével töltjük le, megelőzve a blokkolást és gyorsítótárazást
+    resp_nagyker = requests.get(fresh_nagyker_url, headers=HEADERS, timeout=120)
+    resp_nagyker.raise_for_status()
+
+    df_new = pd.read_csv(BytesIO(resp_nagyker.content), sep=";", usecols=["sku", "dealer_price", "available_stock"], dtype=str)
     df_new["sku"] = df_new["sku"].astype(str).str.strip()
     df_new = df_new[df_new["sku"] != ""]
     df_new = df_new.drop_duplicates(subset=["sku"], keep="last")
