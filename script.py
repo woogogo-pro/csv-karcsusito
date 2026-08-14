@@ -7,7 +7,7 @@ import time
 import traceback
 from io import BytesIO
 
-NAGYKER_URL = "https://store.dreamlove.es/dyndata/exportaciones/csvzip/catalog_1_51_125_2_8964ad7838ce7787975ab7a21a3787ff_csv_plain.csv"
+NAGYKER_URL = "https://store.dreamlove.es/dyndata/exportaciones/csvzip/catalog_1_51_125_2_8964ad7838ce7787975ab7a21a3787ff_csv_plain.csv?tkn=cafec080b46f4deef3b89a9875c33c3ff0d99ddb8e302a9461acc0eab27d7973"
 OWN_PRODUCTS_FILE_URL = "https://sexstore.ie/wp-load.php?security_token=aa5206cc02fc4c62&export_id=26&action=get_data"
 
 STATE_FILE = "state.json"
